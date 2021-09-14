@@ -1,10 +1,12 @@
 set.seed(123)
 ## True model
 error<-rnorm(n=300,0,1)
+error
 X<-runif(n=300,min=0, max=4)
+X
 
 Y=3+0.2*X+error
-
+Y
 ## My model
 # Y=beta0+beta1X+error
 
