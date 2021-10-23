@@ -1,0 +1,177 @@
+---
+title: "Fixed Effects"
+author: "Marcelino Guerra"
+date: "Last update: 10/13/2021"
+abstract: 
+output: 
+  rmdformats::readthedown
+extra_dependencies: ["cancel", "amsmath", "amssymb", "float","tcolorbox","awesomebox"]
+---
+
+<style type="text/css">
+  body{
+  font-size: 14pt;
+}
+</style>
+
+```{r setup, include=FALSE}
+  knitr::opts_chunk$set(include = TRUE)  # TRUE for solution; FALSE for questions set
+  knitr::opts_chunk$set(echo = TRUE)
+  knitr::opts_chunk$set(message = FALSE)
+  knitr::opts_chunk$set(warning = FALSE)
+  knitr::opts_chunk$set(fig.height = 6, fig.width = 11, out.width = '100%', fig.align = "center")
+  options(width = 90)
+library(fontawesome)
+```
+
+
+
+
+## Preliminaries
+
+These notes are based on [Nick Huntington-Klein's lecture on Within Variation and Fixed Effects](https://nickch-k.github.io/EconometricsSlides/Week_06/Week_06_1_Within_Variation_and_Fixed_Effects.html#1). Check his video lecture [here](https://www.youtube.com/watch?v=Af0eSTbjj_I&t=889s). In this exercise, we use data from [Cornwell and Trumbuil (1993)](https://www.ssc.wisc.edu/~munia/590/trunbull.pdf). This dataset [download here](https://github.com/guerramarcelino/PolicyEval/raw/main/Datasets/CT1993.RDS) comprehends 90 North Carolina counties during the period from 1981 to 1987. The table below describes the variables:
+
+
+
+```{r, echo=F}
+library(kableExtra)
+
+Variable<-c("county",   "year",     "crmrte",   "prbarr", "prbconv",  "prbpris",  "avgsen",   "polpc",  "density",  "taxpc" ,   "west"  ,   "central",  "urban",    "pctmin80", "pctymle", "w...")
+
+Definition<-c("County id", "Time period (year)", "Crime rate (per person)", "Probability of arrest (arrests/offenses)", "Probability of conviction (conviction/arrests)", "Probability of prison (prison/convictions)", "Average sentence lenght", "Police per capita", "Population density","Per capita tax revenue", "Western counties dummy", "Central counties dummy", "Urban counties dummy", "Percentage of minority 1980", "Percentage of young male", "All other variables starting with `w` represent wages in different sectors/industries")
+df<-data.frame(Variable, Definition)
+kbl(df, digits=2, caption = "Variables' Description", booktabs = T) %>%
+kable_styling(latex_options = c("striped", "HOLD_position"))%>%
+  column_spec(2, width = "12cm")
+
+```
+
+When a column's name starts with `l`, that means the logarithm transformation was applied to the variable. 
+
+## Between variation
+
+Reading the `CT1993.RDS` file and filtering by counties 1, 3, 23 and 91:
+
+```{r}
+library(tidyverse)
+ct93<-readRDS("CT1993.RDS")
+ct93_sub<-ct93%>%
+  select(county, year, crmrte, prbarr, polpc, density, urban)%>%
+  filter(county %in% c(1,3,23,91))
+```
+
+Exploring the between variation with a pooled regression, one can see the positive relationship between crime rate and probability of arrest:
+
+```{r}
+library(fixest)
+pooled<-feols(crmrte~prbarr, se="hetero", data=ct93_sub)
+summary(pooled)
+```
+
+## Within variation
+
+There are three ways to get estimates using the within variation. Let's explore each one in more detail:
+
+
+### Regress the demeaned values of $Y_{it}$ on $D_{it}$
+
+The first step is to get the group means (i.e., average crime rate and the average probability of arrest for each county during 1981-1987). Then, take the difference of each observation and its group mean: 
+
+```{r}
+within<-ct93_sub%>%
+  group_by(county)%>%
+  mutate(mean_crime=mean(crmrte),
+         mean_prbarr=mean(prbarr))%>%
+  mutate(within_crime=crmrte-mean_crime,
+         within_prbarr=prbarr-mean_prbarr)
+```
+
+To get the estimates using the within variation, regress `within_crime` on `within_prbarr`:
+
+```{r}
+within_demean<-lm(within_crime~within_prbarr,  data=within)
+summary(within_demean)
+```
+
+Differently from the between regression, the coefficient on the probability of arrest is negative (but not statistically significant).
+
+### Regress $Y_{it}$ on $D_{it}$ and county unit dummies
+
+The demeaning process might be exhaustive because you need to do it **not only for the dependent variable but also for all the covariates you are using**. One easy way to get the same result is to allow different intercepts for each county:
+
+```{r}
+lsdv<-lm(crmrte~-1+prbarr+factor(county), data=ct93_sub)
+summary(lsdv)
+```
+
+This is what we call least squares dummy variables (LSDV) regression.
+
+### Regress $Y_{it}$ on $D_{it}$ with canned fixed effects routine 
+
+When you have many fixed effects (sometimes thousands, sometimes millions), LSDV regression can be time-consuming and computationally inefficient. `r fa("r-project", fill = "steelblue")`-users have [Fixest](https://cran.r-project.org/web/packages/fixest/vignettes/fixest_walkthrough.html#251_Adding_fixed-effects_to_non-linear_in_parameters_models) as an option to perform estimations with multiple fixed effects at a breakneck pace:
+
+```{r}
+fe<-feols(crmrte~prbarr|county, data=ct93_sub)
+summary(fe)
+```
+
+The estimated coefficient is the same $-0.013923$ in all the regressions above - what is different is the standard error from the demeaned and the last two regressions.
+
+## Two-way fixed effects
+
+A common approach is to add a fixed effect for the panel unit and a time-varying intercept to capture common time trends across units, i.e., to control for something that varies over time in the same way for all panel units. To do that, add `time` to the panel unit on the right side of the vertical bar `|`.
+
+
+```{r}
+twfe<-feols(crmrte~prbarr|county+year, data=ct93_sub)
+summary(twfe)
+```
+
+## Panel data alone can't deal with simultaneity
+
+A two-way fixed effects regression between crime rate and police per capita deals with common time trends and time-invariant unobserved heterogeneity. However, TWFE does not address simultaneity: 
+
+```{r}
+pol_crime<-feols(crmrte~polpc|county+year, data=ct93)
+summary(pol_crime)
+```
+
+One can see that the coefficient on police per capita is positive and statistically significant. That positive association is most likely driven by counties with higher crime rates hiring more police officers per capita. 
+
+
+## Intepreting Within Relationships
+
+This regression replicates columns `between` and `within` in Table 3 in [Cornwell and Trumbuil (1993)](https://www.ssc.wisc.edu/~munia/590/trunbull.pdf). All the variables are in log, so the results are interpretable as elasticities.
+
+```{r}
+full_between<-feols(lcrmrte~lprbarr+lprbconv+lprbpris+lavgsen+lpolpc+
+                      ldensity+lpctymle+lwtuc+lwtrd+lwfir+lwser+lwmfg+
+                      lwfed+lwsta+lwloc+central+urban+pctmin80, 
+                    se="standard", data=ct93)
+
+full_within<-feols(lcrmrte~lprbarr+lprbconv+lprbpris+lavgsen+lpolpc+
+                     ldensity+lpctymle+lwtuc+lwtrd+lwfir+lwser+lwmfg+
+                     lwfed+lwsta+lwloc|county+year, 
+                   se="standard", data=ct93)
+
+etable(full_between, full_within, signifCode = c("***"=0.01, "**"=0.05, "*"=0.10))
+```
+
+Since we are using *within variation*, the interpretation must be *within-county*. Hence, raising the probability of arrest by 10% in a given county reduces the number of crimes per person in that county by 3.556%, on average. 
+
+Finally, we know that standard errors are hardly homoskedastic, and it is better to estimate the robust standard errors. However, when using fixed effects, we should cluster the standard errors at the main fixed effect level: in this way, we allow the error term to be correlated within units. Estimates are less precise but still significant at the 1% level.  
+
+```{r}
+full_between2<-feols(lcrmrte~lprbarr+lprbconv+lprbpris+lavgsen+lpolpc+
+                      ldensity+lpctymle+lwtuc+lwtrd+lwfir+lwser+lwmfg+
+                      lwfed+lwsta+lwloc+central+urban+pctmin80, 
+                    cluster=~county, data=ct93)
+
+full_within2<-feols(lcrmrte~lprbarr+lprbconv+lprbpris+lavgsen+lpolpc+
+                     ldensity+lpctymle+lwtuc+lwtrd+lwfir+lwser+lwmfg+
+                     lwfed+lwsta+lwloc|county+year, 
+                   cluster=~county, data=ct93)
+
+etable(full_between2, full_within2, signifCode = c("***"=0.01, "**"=0.05, "*"=0.10))
+```
+

@@ -1,0 +1,135 @@
+---
+title: | 
+  ![](ILlogo.jpg){width=.2in}
+  
+  | ECON 474: Econometrics of Policy Evaluation
+  
+  | Homework 2
+author: "Marcelino Guerra (mguerra3)"
+date: '09/27/2021'
+output:
+  pdf_document:
+    extra_dependencies: ["cancel", "amsmath", "amssymb", "float"]
+    toc: yes
+    toc_depth: 3
+geometry: margin=1.2in
+urlcolor: blue
+fontfamily: mathpazo
+fontsize: 11pt
+header-includes:
+   - \linespread{1.05}
+---
+
+```{r setup, include=FALSE}
+  knitr::opts_chunk$set(include = TRUE)  # TRUE for solution; FALSE for questions set
+  knitr::opts_chunk$set(echo = TRUE)
+  knitr::opts_chunk$set(message = FALSE)
+  knitr::opts_chunk$set(warning = FALSE)
+  knitr::opts_chunk$set(fig.height = 5, fig.width = 7, out.width = '60%', fig.align = "center")
+  knitr::opts_chunk$set(fig.pos = "H", out.extra = "")
+  options(width = 100)
+```
+
+```{css, echo=FALSE}
+.solution {
+background-color: #CCDDFF;
+}
+```
+
+# CIA and Regression [20 points]
+
+Let's get back to the Tennessee STAR experiment ([download the dataset here](https://github.com/guerramarcelino/PolicyEval/raw/main/Datasets/STARkinder.RDS)). The experiment was designed to estimate the effects of smaller classes in primary school. The researchers randomly assigned students to `small` classes (13-17 students), `regular` classes (22-25 students) with a part-time teacher's aide - the standard arrangement -, or regular classes with full-time teacher's aide (`regular+aide`). **Schools with at least three classes in each grade could choose to enroll in the experiment**. Hence, students were randomized but not schools, and that might be a source of bias. 
+
+
+a. Run a regression of the outcome `score` (in percentage points) on the treatment `classtype`, controlling for `schoolid` and using robust standard errors. How do these results compare to what you got before ([HW #1 question 2.2 c.](https://guerramarcelino.github.io/Econ474/HW/HW1#the-tennessee-star-experiment-35-points))? 
+
+*Hint*: Use feols() from the fixest package setting `se="hetero"`.
+
+b. Repeat the code you used to create all the dummy variables in Question 2.2. a. Then, run a regression of the outcome `score` (in percentage points) on the treatment `classtype`, controlling for `schoolid`, `Free_lunch`, `White_asian`, `female`, and `experience`. Use robust standard errors. Did the estimates related to `small` and `regular+aide` change when you added covariates? 
+
+c. Do your new results represent the causal effect of class size on students' scores? Why/Why not?
+
+# Omitted Variable Bias [35 points]
+
+The standard economic theory of criminal behavior frames the engagement in illicit activities as a result of a **rational choice**, a decision that considers costs and benefits. The straightforward prediction of this theory is that people respond to changes in the expected costs and benefits of committing a crime. For instance, if there are more police on the streets or better police intelligence, that would increase the probability of arrest $(P_{A})$ faced by potential offenders. The increase in $P_{A}$ generates a drop in crime rates since it increases the cost of committing a crime/decreases the expected utility of crime. This behavioral response of individuals is known as a **deterrent effect**.
+
+In this question, we'll use part of the dataset from [Cornwell and Trumbuil (1993)](https://www.ssc.wisc.edu/~munia/590/trunbull.pdf). Download the `.RDS` file [here](https://github.com/guerramarcelino/PolicyEval/raw/main/Datasets/CT1993.RDS). The authors have data from counties in North Carolina from 1981 to 1987, and their goal was to estimate by how much crime would go down with an increase in the probability of arrest $(P_{A})$, i.e., the elasticity of crime with respect to $P_{A}$. 
+
+
+a. Read the dataset `CT1993.RDS` and get the average crime rate `crmte` and the average probability of arrest `prbarr` for each year from 1981 to 1987. Is there any clear pattern between those variables over time across North Carolina's counties? 
+
+*Hint:* you want to gropu_by(year) and summarize() the data.
+
+b. Filter the data by `year==1987`. After that, construct a scatterplot with `lcrmrte` (log crime per person) in the y-axis and `prbarr` (probability of arrest) in the x-axis. How do those two variables relate? 
+
+c. Estimate the following model by OLS with robust s.e. using the 1987 data:
+
+$$lcrmrte_{i}=\beta_{0}+\beta_{1}prbarr_{i}+v_{i}$$
+and interpret the results.
+
+d. Estimate the following model by OLS with robust s.e. using the 1987 data:
+
+$$lcrmrte_{i}=\gamma_{0}+\gamma_{1}prbarr+\gamma_{2}density_{i}+\eta_{i}$$
+where `density` is the population density (number of people per sq. mile). Why are the coefficients related to `prbarr` different in the two regressions? 
+
+
+e. Estimate the following model by OLS using the 1987 data:
+
+$$density_{i}=\theta_{0}+\theta_{1}prbarr_{i}+\varepsilon_{i}$$
+and show how $\theta_{1}$ relates to $\beta_{1}$ and $\gamma_{1}$.
+
+f. Is either of the regressions likely to provide the true causal effect of the probability of arrest on crime rates? Why/Why not?
+
+
+g. [**Extra 5 points**] To see how $lcrmrate$ relates to $prbarr$ in a scatterplot while controlling for $density$, we can take advantage of the FWL theorem. Do the following steps:
+
+1. Run a regression between $lcrmrate$ and $density$, and store the residuals $Y^{R}$
+2. Run a regression between $prbarr$ and $density$, and store the residuals $X^{R}$
+3. Draw the scatterplot with $Y^{R}$ in the `y-axis` and $X^{R}$ in the `x-axis`
+
+
+# Propensity Score Matching [45 points]
+
+The Credit for this question goes to [Lucas Chagas](https://economics.illinois.edu/profile/chagas2).
+
+The dataset ([here](https://drive.google.com/file/d/1pwrNchDq1OsqspSpeY2EI1d_CVGGNgrw/view?usp=sharing)) contains information about the extra review sessions
+experiment in an elementary school in Urbana, IL, with 245 students. The school has 745
+students. When the program was implemented, there was no intention of performing an impact
+evaluation study. Therefore, we can only observe data after the intervention. The variables are described below:
+
+```{r, echo=F}
+library(kableExtra)
+
+Variable<-c("id", "score", "treat", "female", "white", "mothereduc")
+Definition<-c("Students's Identification", "Grade", "1 if participated in the program, 0 otherwise", "1 if student is female, 0 otherwise", "1 if student is white, 0 otherwise", "Student's mother years of education")
+df<-data.frame(Variable, Definition)
+kbl(df, digits=2, caption = "Variables Description", booktabs = T) %>%
+kable_styling(latex_options = c("striped", "HOLD_position"))%>%
+  column_spec(2, width = "12cm")
+
+```
+
+
+a. What is the result of a naive comparison of average `scores` between the treatment and control groups? Is that difference statistically significant?
+
+*Hint:* use the function `read_csv()` from `tidyverse` to import the dataset.
+
+b. Run `t-tests` to check for balance between treatment and control groups for all the covariates `female`, `white`, and `mothereduc`. Are the variables balanced?
+
+c. Based on your answer for b), can you guess the direction of the bias? i.e., do you think that the naive comparison using non-experimental data underestimates or overestimates the causal effect of review sessions? **Explain.**
+
+## Regression with multiple covariates
+
+d. Run a regression adding the covariates `female`, `white`, and `mothereduc` beside the treatment variable `treat`. Is the effect of extra review sessions different using regression and using a simple difference in means? Why? 
+
+## Nearest-Neighbor Matching
+
+e. Run the logit model to get the predicted probabilities of getting treated given the observed covariates `female`, `white`, and `mothereduc`. Plot the distributions of the propensity score in the treated and control groups. What do you see? Can we rely on the existence of common support? 
+
+f. Restrict the sample finding the nearest neighbor of each treated student. Then, run two regressions (one with and the other without covariates) with the matched data. Contrast the results you got with the ones from the naive comparison and regression with full sample. What assumptions do you rely on to claim that this is the true causal effect of extra review sessions on scores? 
+
+## Weighting on the Propensity Score
+
+g. Trim the data based on the propensity score dropping observations with `p-score<0.1` and `p-score>0.9`. Then run the weighted regression using the IPW as weights. Contrast the results you got with the ones from the nearest neighbor.  
+
+h. Is any of those regressions likely to provide the true causal effect of extra review sessions on student scores? Why/Why not?  

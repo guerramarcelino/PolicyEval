@@ -1,0 +1,165 @@
+---
+title: "RAND Health Insurance Experiment"
+author: "Marcelino Guerra"
+date: "Last update: 8/31/2021"
+abstract: 
+output: 
+  rmdformats::readthedown
+---
+
+<style type="text/css">
+  body{
+  font-size: 14pt;
+}
+</style>
+
+```{r setup, include=FALSE}
+  knitr::opts_chunk$set(include = TRUE)  # TRUE for solution; FALSE for questions set
+  knitr::opts_chunk$set(echo = TRUE)
+  knitr::opts_chunk$set(message = FALSE)
+  knitr::opts_chunk$set(warning = FALSE)
+  knitr::opts_chunk$set(fig.height = 6, fig.width = 11, out.width = '100%', fig.align = "center")
+  options(width = 90)
+library(fontawesome)
+```
+
+# Working with .RDS files 
+
+The first step is to set up your working directory. To better organize things, I have a folder named `Rlabs` on my desktop. Inside of it, I also have different folders for each `r fa("r-project", fill = "steelblue")` lab - in this case, `lab1`. To change the working directory, use  `setwd()` with the path that leads to the folder you want. 
+
+In this lab, we will use data from the RAND Health Insurance Experiment (HIE), and there are two datasets. [Here](https://github.com/guerramarcelino/PolicyEval/raw/main/Datasets/rand_sample.RDS) you have demographic information about the subjects in the study and also health variables (outcomes) both before and after the experiment. The other file ([here](https://github.com/guerramarcelino/PolicyEval/raw/main/Datasets/rand_spend.RDS)) has information about health care spending. 
+
+
+```{r, include=T}
+setwd("C:/Users/User/Desktop/Rlabs/lab1")
+rand_sample<-readRDS("rand_sample.RDS")
+rand_spend<-readRDS("rand_spend.RDS")
+```
+If you want to see the first values on that dataset, you can use the function head() or use `View(rand_sample)` to open the dataframe in a new tab.
+
+```{r, include=T, eval=F}
+#View(rand_sample)
+head(rand_sample,5)
+```
+
+```{r, include=T, eval=F}
+View(rand_spend)
+#head(rand_spend,5)
+```
+
+Besides the column `plantype`, which identifies the assigned insurance group of each individual, the variables that we are looking for are:
+
+```{r, echo=F}
+library(kableExtra)
+
+Variable<-c("female","blackhisp","age","educper","income1cpi","hosp","ghindx","cholest","systol",
+"mhi","ghindxx","cholestx","systolx","mhix","ftf","out_inf","totadm","inpdol_inf","tot_inf")
+Definition<-c("Female","Nonwhite", "Age", "Education","Family Income","Hospitalized last year",
+              "General Health Index (before)","Cholesterol (mg/dl) (before)","Systolic blood pressure (mm Hg) (before)","Mental Health Index (before)","General Health Index (after)","Cholesterol (mg/dl) (after)","Systolic blood pressure (mm Hg) (after)","Mental Health Index (after)","Face-to-face visits", "Outpatient expenses", "Hospital admissions", "Inpatient expenses", "Total expenses")
+df<-data.frame(Variable, Definition)
+kbl(df, digits=2, caption = "Variables Description", booktabs = T) %>%
+kable_styling(latex_options = c("striped", "HOLD_position"))%>%
+  column_spec(2, width = "12cm")%>%
+  pack_rows("rand_sample file", 1, 14) %>%
+  pack_rows("rand_spend file", 15, 19) 
+```
+
+# Summarizing data
+
+Let's say you want to compare demographic characteristics of the individuals in the RAND HIE across health insurance groups. To do that, you just need the functions `group_by()` and `summarize()` from the `tidyverse` package. Since there are some missing observations (NA), allow the function mean() to ignore those NAs. 
+
+```{r}
+library(tidyverse)
+rand_sample%>%group_by(plantype)%>%
+summarize(Female=mean(female, na.rm=T), 
+Nonwhite=mean(blackhisp, na.rm=T),                    
+Age=mean(age, na.rm=T), 
+Education=mean(educper, na.rm=T), 
+`Family Income`=mean(income1cpi, na.rm=T),
+`Hospitalized last year`=mean(hosp, na.rm=T), 
+`General Health Index`=mean(ghindx, na.rm=T),
+`Cholesterol (mg/dl)`=mean(cholest, na.rm=T),
+`Systolic blood pressure (mm Hg)`=mean(systol, na.rm=T),
+`Mental Health Index`=mean(mhi, na.rm=T),
+`Number enrolled`=n())
+  
+```
+
+You can see that those values are the same as the ones in the lecture notes. 
+
+# Checking for Balance
+
+Although you can see the average values of demographic characteristics, we are unsure whether the difference in means across groups is statistically different from zero. We can perform a standard t-test comparing two groups. In this example, we compare the Catastrophic with the free plan. Let's try education first:
+
+
+```{r}
+cat_vs_free<-rand_sample%>%filter(plantype=="Catastrophic"|plantype=="Free")
+
+t.test(educper~plantype, data=cat_vs_free, alternative="two.sided")
+```
+According to the t-test, the difference of $12.10483-11.84211=0.2627$ is not statistically significant at the 5% level, and we do not reject the null of equal means between groups. 
+
+What about family income?
+
+```{r}
+t.test(income1cpi~plantype, data=cat_vs_free, alternative="two.sided")
+```
+Again, the p-value is higher than 0.05, and we cannot reject the null: there is no evidence that family income is different between the Catastrophic and the Free insurance groups. 
+
+**As an exercise, try to compare all the demographic characteristics between insurance levels. Use Catastrophic as "control" and Deductible, Coinsurance and Free as "treatment" - do it using pairwise comparisons, e.g., Catastrophic x Deductible, Catastrophic x Coinsurance, and so on.**   
+
+
+# Results of the Experiment
+
+As we saw in class, subjects assigned to more generous insurance plans used substantially more health care. Let's compare outpatient expenses and face-to-face visits between the Catastrophic group and **the other groups together (we call it `any_ins`)**.
+
+```{r}
+
+rand_spend$any_ins<-ifelse(rand_spend$plantype=="Catastrophic", "Catastrophic","Any Insurance")
+t.test(ftf~any_ins, data=rand_spend,alternative="two.sided")
+```
+The almost zero p-value gives us confidence that the difference in face-to-face visits between those with some insurance and the Catastrophic group is statistically significant. One can see the same for outpatient expenses below:
+
+```{r}
+t.test(out_inf~any_ins, data=rand_spend, alternative="two.sided")
+```
+
+
+# Equivalence of Differences in Means and Regression
+
+Instead of performing a t-test for differences in means, one can run regressions and get the same results. Regression plays an important role in empirical economic research and can be easily applied to experimental data. The advantage is that you can add controls and fix standard errors (we will talk about that later).  
+
+Let's first create a dummy that is equal to 1 if the individual has "any insurance" (i.e., is assigned to the Deductible, Coinsurance, or Free group) and zero otherwise:
+
+```{r}
+rand_spend$dummy_ins<-ifelse(rand_spend$any_ins=="Any Insurance", 1,0)
+```
+
+Then, use the `lm()` to perform a linear regression of Face-to-face visits on the dummy that identifies the comparison groups:
+
+```{r}
+reg1<-lm(ftf~dummy_ins, data=rand_spend)
+summary(reg1)
+```
+The coefficient `0.8989` represents the difference in face-to-face visits between the insurance groups. As one can see, the coefficient is statistically significant (p-value<0.05).
+
+When you perform the t-test for difference in means with the option `var.equal=TRUE` (i.e., assuming equal variance), you get the same standard errors/p-value/t statistic. Notice that running the standard OLS, you assume homoskedasticity, and that is why you need to set `var.equal=TRUE`.
+
+```{r}
+t.test(ftf~any_ins, data=rand_spend,alternative="two.sided", var.equal = TRUE)
+```
+
+Doing the same for **outpatient expenses**:
+
+
+```{r}
+reg2<-lm(out_inf~dummy_ins, data=rand_spend)
+summary(reg2)
+```
+
+```{r}
+t.test(out_inf~any_ins, data=rand_spend, alternative="two.sided", var.equal = TRUE)
+```
+
+**What about the health outcomes?** Compare the average health outcomes after the experiment - `ghindxx`, `cholestx`, `systolx`, `mhix` - between the Catastrophic and any insurance groups using regression. Do you see any statistically significant coefficient?  
+

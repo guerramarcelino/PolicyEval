@@ -1,0 +1,283 @@
+---
+title: "Subclassification and Matching"
+author: "Marcelino Guerra"
+date: "Last update: 09/21/2021"
+abstract: 
+output: 
+  rmdformats::readthedown
+extra_dependencies: ["cancel", "amsmath", "amssymb", "float","tcolorbox","awesomebox"]
+---
+
+<style type="text/css">
+  body{
+  font-size: 14pt;
+}
+</style>
+
+```{r setup, include=FALSE}
+  knitr::opts_chunk$set(include = TRUE)  # TRUE for solution; FALSE for questions set
+  knitr::opts_chunk$set(echo = TRUE)
+  knitr::opts_chunk$set(message = FALSE)
+  knitr::opts_chunk$set(warning = FALSE)
+  knitr::opts_chunk$set(fig.height = 6, fig.width = 11, out.width = '100%', fig.align = "center")
+  options(width = 90)
+library(fontawesome)
+```
+
+
+
+
+## Subclassification Example
+
+In this example, we are going to follow [Cunningham (2021)](https://mixtape.scunning.com/matching-and-subclassification.html?panelset=r-code&panelset1=r-code2&panelset2=r-code3#subclassification-exercise-titanic-mathrmdata-set) and use a dataset of *Titanic* passengers. Download the `.RDS` file [here](https://github.com/guerramarcelino/PolicyEval/raw/main/Datasets/titanic.RDS). 
+
+The variables' description is the following:
+
+```{r, echo=F}
+library(kableExtra)
+
+Variable<-c("class", "age", "sex", "survived")
+Definition<-c("Passenger's class: 1 if located in the upper decks", "Passenger's age: 0 if Child, 1 if Adult", "Passenger's gender: 0 if woman, 1 if man", "1 if survived, 0 otherwise")
+df<-data.frame(Variable, Definition)
+kbl(df, digits=2, caption = "Variables Description", booktabs = T) %>%
+kable_styling(latex_options = c("striped", "HOLD_position"))%>%
+  column_spec(2, width = "12cm")
+
+```
+Out of 2,201 people among passengers and crew, only 711 survived. It is well known the role that wealth and norms - women and children had priority for lifeboats - played in passengers' probability of survival, so let's check whether or not being part of the first class made someone more likely to survive the tragedy. First, let's compare survival rates between passengers in the upper deck and the others. 
+
+Create a dummy variable `first_class` that takes 1 if `class==1` and 0 otherwise. Then, use `group_by()` and `summarize()` the information calculating the average values of `survived` 
+
+
+```{r}
+library(tidyverse)
+titanic<-readRDS("titanic.RDS")
+titanic$first_class<-ifelse(titanic$class==1,"Upper Deck","Lower Decks")
+titanic%>%group_by(first_class)%>%summarize(survival_rate=mean(survived))
+```
+
+The naive comparison gives a difference in survival rates of 35.4% for first class seats. That difference is considerable and also statistically significant:
+
+```{r}
+t.test(survived~first_class, data=titanic)
+```
+
+However, we also know that women and children were explicitly given priority for boarding the very limited number of lifeboats. Hence, that difference might be biased if those groups - lower and upper deck - are fundamentally different. If women and children are more likely to be seated in the first class, then that difference is driven by social norms.   
+
+*What if we adjust for those two observable confounders (age and gender)?* To use subclassification weighting:
+
+1. Stratify the data into four groups: male children, female children, male adult, female adult
+
+2. Calculate the difference in survival probabilities for each group
+
+3. Calculate the number of people in the non-first-class groups and divide by the total number of non-first-class population. These are our strata-specific weights
+
+4. Calculate the weighted average survival rate using the strata weights
+
+
+```{r}
+titanic%>%group_by(age, sex, first_class)%>%summarize(outcome=mean(survived), count=n())
+```
+
+```{r}
+diff1=1-0.614
+diff2=1-0.407
+diff3=0.972-0.626
+diff4=0.326-0.188
+
+
+weightedATE=44/1876*diff1+59/1876*diff2+281/1876*diff3+1492/1876*diff4
+weightedATE
+```
+
+Using the subclassification weighting scheme, the average treatment effect (ATE) is 18.9%, compared to 35.4% using a simple comparison between first and non-first classes. 
+
+
+## Propensity Score Example
+
+In this example, we follow [Cunningham (2021)](https://mixtape.scunning.com/matching-and-subclassification.html?panelset7=r-code8&panelset6=r-code7&panelset4=r-code5&panelset5=r-code6#example-the-nsw-job-training-program). Download the NSW experimental data [here](https://github.com/guerramarcelino/PolicyEval/raw/main/Datasets/NSW_EXPER.RDS) and let's replicate the table we saw in class. 
+
+The variables' description is the following:
+
+```{r, echo=F}
+library(kableExtra)
+
+Variable<-c("data_id", "treat", "age", "educ", "black", "hisp", "marr", "nodegree", "re74", "re75","re78")
+Definition<-c("Individual's Identification", "Treatment: 1 if participated in the Job training, 0 otherwise", "Age", "Years of Education", "Race: 1 if Black, 0 otherwise", "Race: 1 if Hispanic, 0 otherwise", "Marital status: 1 if married, 0 otherwise", "1 if participant does not have a degree, 0 otherwise", "Earnings in 1974 (pre-program)", "Earnings in 1975 (pre-program)", "Earnings in 1978 (post-program)")
+df<-data.frame(Variable, Definition)
+kbl(df, digits=2, caption = "Variables Description", booktabs = T) %>%
+kable_styling(latex_options = c("striped", "HOLD_position"))%>%
+  column_spec(2, width = "12cm")
+
+```
+
+
+First, read the `.RDS` file. Then, summarize the baseline characteristics to check for balance and get the difference in means of earnings in 1978 `re78`:
+
+
+```{r}
+library(tidyverse)
+exper_data<-readRDS("NSW_EXPER.RDS")
+exper_data%>%group_by(treat)%>%summarize(Age=mean(age), Education=mean(educ), 
+                                     Black=mean(black), Hispanic=mean(hisp),
+                                     Married=mean(marr), `No degree`=mean(nodegree), 
+                                     `Earnings in 1974`=mean(re74),
+                                     `Earnings in 1975`=mean(re75), 
+                                     `Earnings in 1978`=mean(re78), 
+                                     `Number of Observations`=n())
+```
+
+Since the NSW was randomized, the independence assumption $(Y_{1i}, Y_{0i}) \perp\!\!\!\perp D_{i}$ is satisfied and simple comparisons between means give the average treatment effect (ATE):
+
+$$\frac{1}{N_{Treat}}\sum_{D_{i}=1} Y_{i}-\frac{1}{N_{Control}}\sum_{D_{i}=0}Y_{i} \approx \underbrace{E[Y_{1i}-Y_{0i}]}_{\text{Average Treatment Effect}}$$
+```{r}
+mean_treated<-exper_data%>%filter(treat==1)%>%summarize(avg_earnings78=mean(re78))
+mean_control<-exper_data%>%filter(treat==0)%>%summarize(avg_earnings78=mean(re78))
+
+mean_treated-mean_control
+```
+
+The causal effect of the NSW job-training program is $1,794.
+
+What if we replace the experimental control group with a random sample of Americans from the `Current Population Survey`? Download this data [here](https://github.com/guerramarcelino/PolicyEval/raw/main/Datasets/NSW_NE.RDS) and let's see how it goes. 
+
+```{r}
+nonexper_data<-readRDS("NSW_NE.RDS")
+
+nonexper_data%>%group_by(treat)%>%summarize(Age=mean(age), Education=mean(educ), 
+                                     Black=mean(black), Hispanic=mean(hisp),
+                                     Married=mean(marr), `No degree`=mean(nodegree), 
+                                     `Earnings in 1974`=mean(re74),
+                                     `Earnings in 1975`=mean(re75), 
+                                     `Earnings in 1978`=mean(re78), 
+                                     `Number of Observations`=n())
+```
+
+As you can see, the NSW participants are younger, less educated, more black, less likely to be married, more likely to have no degree, among others - those two groups are fundamentally different. 
+
+### Nearest-Neighbor Matching
+
+One possibility is to use a matched sample that better approximates the NSW participants using propensity scores - the conditional probability of receiving the treatment given covariate values (in this case, education, age, past earnings, etc.). To get those estimated probabilities, we can use a logit regression:
+
+
+```{r}
+# Use the glm() function with
+# the family = binomial(link = 'logit') option
+logit_reg <- glm( treat ~ age + educ + marr + nodegree + black + 
+              hisp + re74 + re75, data = nonexper_data,
+          family = binomial(link = 'logit'))
+
+```
+
+And get its fitted values:
+
+```{r}
+probs <- data.frame(prop_score = predict(logit_reg, type = "response"),
+                     job_training = logit_reg$model$treat)
+#View(probs)
+head(probs,5)
+```
+
+One of the assumptions for matching is the existence of **common support**: there must be units in both the treatment and control groups for any probability. In other words, common support ensures enough overlap in the characteristics of treated and control units to find suitable matches. 
+
+You can look at the distributions of the propensity score in the treated and control groups:
+
+```{r}
+library(patchwork)
+hist1<-probs  %>% 
+  filter(job_training == 0) %>% 
+  ggplot() +
+  geom_histogram(aes(x = prop_score))+
+  xlab("Probability of getting Job-training: control")+
+  theme_bw()
+
+
+hist2<-probs  %>% 
+  filter(job_training == 1) %>% 
+  ggplot() +
+  geom_histogram(aes(x = prop_score))+
+  xlab("Probability of getting Job-training: treated")+
+  theme_bw()
+
+hist1+hist2
+```
+
+It does not look good! The characteristics of individuals in the treatment group are scarce in the CPS sample we are using as a non-experimental control group. 
+
+A simple method for estimating the average treatment effect of the NSW training is to restrict the sample finding pairs of observations with very similar propensity scores but with different treatment statuses:
+
+
+```{r}
+library(MatchIt)
+m_out <- matchit(treat ~ age + educ +
+                    marr + nodegree +
+                   black + hisp + re74 + re75,
+                 data = nonexper_data, method = "nearest", 
+                 distance = "logit")
+
+m_data <- match.data(m_out)
+#View(m_data)
+dim(m_data)
+```
+
+The matched sample has 370 individuals: 185 in the treatment group and 185 in the control group. You might want to see if there is indeed a balance between covariates in the new dataset:
+
+```{r}
+
+m_data%>%group_by(treat)%>%summarize(Age=mean(age), Education=mean(educ), 
+                                     Black=mean(black), Hispanic=mean(hisp),
+                                     Married=mean(marr), `No degree`=mean(nodegree), 
+                                     `Earnings in 1974`=mean(re74),
+                                     `Earnings in 1975`=mean(re75), 
+                                     `Earnings in 1978`=mean(re78), 
+                                     `Number of Observations`=n())
+```
+
+You can also run `t.test()` and see if the differences are statistically significant (they shouldn't be). To get the average treatment effect, you can calculate the difference in 1978 average earnings between the treatment and control group or run a regression:
+
+```{r}
+library(fixest)
+reg1<-feols(re78~treat, data=m_data, se="hetero")
+reg2<-feols(re78~treat+age+educ+black+hisp+marr+nodegree+re74+re75, data=m_data, se="hetero")
+
+etable(reg1, reg2, signifCode = c("***"=0.01, "**"=0.05, "*"=0.10))
+```
+
+### Weighting on the Propensity Score
+
+Besides nearest-neighbor matching, there are several other ways to get average treatment effects using the estimated propensity score. Assuming the CIA holds, one can use the individuals' propensity score to weigh their outcomes.   
+
+The first step is to generate the propensity scores using the logit regression:
+
+```{r}
+nonexper_data<-readRDS("NSW_NE.RDS")
+
+# Logit model to predict probability of treatment
+logit_reg <- glm( treat ~ age + educ + marr + nodegree + black + 
+              hisp + re74 + re75, data = nonexper_data,
+          family = binomial(link = 'logit'))
+
+# Generate propensity scores
+nonexper_data$prop_scores<-logit_reg$fitted.values
+```
+
+After that, trim the data using a good rule of thumb: we keep observations on the interval [0.1,0.9]. Then, calculate the inverse probability weights (IPW) following this formula:
+
+$$\frac{Treatment}{Propensity}-\frac{1-Treatment}{1-Propensity}$$
+
+```{r}
+## Trimming the data 
+nonexper_data<-nonexper_data%>%filter(prop_scores>=.1 &prop_scores<=.9 )
+## Generating the IPW
+nonexper_data<-nonexper_data %>% 
+  mutate(ipw = (treat / prop_scores) + ((1 - treat) / (1 - prop_scores)))
+```
+
+Finally, run a weighted regression using `ipw` as weights:
+
+```{r}
+reg3 <- feols(re78 ~ treat, data = nonexper_data,  se="hetero",  weights = nonexper_data$ipw)
+reg4 <- feols(re78 ~ treat+age+educ+black+hisp+marr+nodegree+re74+re75, data = nonexper_data,  se="hetero",  weights = nonexper_data$ipw)
+etable(reg3,reg4,signifCode = c("***"=0.01, "**"=0.05, "*"=0.10))
+```
+The average treatment effect using IPW is $1,686-1,714, close to the actual causal effect we got from the randomized trial. 

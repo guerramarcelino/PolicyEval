@@ -1,0 +1,145 @@
+---
+title: "Instrumental Variables"
+author: "Marcelino Guerra"
+date: "Last update: 09/27/2021"
+abstract: 
+output: 
+  rmdformats::readthedown
+extra_dependencies: ["cancel", "amsmath", "amssymb", "float","tcolorbox","awesomebox"]
+---
+
+<style type="text/css">
+  body{
+  font-size: 14pt;
+}
+</style>
+
+```{r setup, include=FALSE}
+  knitr::opts_chunk$set(include = TRUE)  # TRUE for solution; FALSE for questions set
+  knitr::opts_chunk$set(echo = TRUE)
+  knitr::opts_chunk$set(message = FALSE)
+  knitr::opts_chunk$set(warning = FALSE)
+  knitr::opts_chunk$set(fig.height = 6, fig.width = 11, out.width = '100%', fig.align = "center")
+  options(width = 90)
+library(fontawesome)
+```
+
+
+
+
+## Preliminaries
+
+Here we replicate some tables from [Angrist and Krueger (1991)](https://www.nber.org/papers/w3572). The dataset `ak91_census1980` [download here](https://github.com/guerramarcelino/PolicyEval/raw/main/Datasets/ak91_census1980) comprehends men born in 1930-1939 in the U.S. Census. The table below describes the variables:
+
+```{r, echo=F}
+library(kableExtra)
+
+Variable<-c("lnw", "s", "yob", "qob", "sob", "age")
+Definition<-c("Log weekly wages", "Years of schooling", "Year of birth", "Quarter of birth", "State of birth", "Age")
+df<-data.frame(Variable, Definition)
+kbl(df, digits=2, caption = "Variables Description", booktabs = T) %>%
+kable_styling(latex_options = c("striped", "HOLD_position"))%>%
+  column_spec(2, width = "12cm")
+
+```
+
+The authors present an IV analysis of returns to schooling, instrumenting years of education with  birth quarters (QOB).
+
+## OLS results
+
+Reading the `ak91_census1980.RDS` file and running the regression of `lnw` on `s`:
+
+```{r}
+ak91<-readRDS("ak91_census1980")
+
+library(fixest)
+reg_ols1<-feols(lnw~s, data=ak91, se="hetero")
+reg_ols2<-feols(lnw~s|yob+sob, data=ak91, se="hetero")
+etable(reg_ols1, reg_ols2, signifCode = c("***"=0.01, "**"=0.05, "*"=0.10))
+```
+The results point to an average increase in wages of around 6.73-7.09% due to one additional year of schooling - the second regression controls for the year of birth and state of birth.
+
+## Wald Estimator
+
+Let's create the instrument $Z_{i}$ that takes on 1 if the individual was born in the $1^{st}$ quarter of the year and 0 otherwise:
+
+```{r}
+ak91$instrument<-ifelse(ak91$qob==1,1,0)
+```
+
+Now, take a look at the average salaries and years of schooling by QOB status:
+
+```{r}
+library(tidyverse)
+ak91%>%group_by(instrument)%>%summarize(wages=mean(lnw), schooling=mean(s))
+```
+
+People born in the first quarter of the year (i.e., $Z_{i}=1$) have, on average, slightly lower wages and years of schooling - the same pattern we saw in the [lecture notes](https://guerramarcelino.github.io/Econ474/Lectures/Lec4/lec4#13). To estimate the returns to schooling using the Wald estimator, divide the reduced form by the first stage results:
+
+$$\text{Effect of schooling on wages}=
+\frac{\text{Effect of QOB on wages}}{\text{Effect of QOB on schooling}}$$
+
+```{r}
+RF<-mean(ak91$lnw[ak91$instrument==1])-mean(ak91$lnw[ak91$instrument==0])
+FS<-mean(ak91$s[ak91$instrument==1])-mean(ak91$s[ak91$instrument==0])
+
+Wald=RF/FS
+
+Wald
+```
+
+The Wald estimator gives a return to education around 10.2%. The difference from the OLS results is driven by the **omitted variable bias**. 
+
+
+## 2SLS Estimates
+
+### Manually getting the coefficient (don't do it!)
+
+To better understand the 2SLS estimation method, run the regression $s_{i}$ on $Z_{i}$ and store the fitted values $\hat{s}_{i}$:
+
+```{r}
+first_stage<-feols(s~instrument, data=ak91, se="hetero")
+ak91$s_hat<-first_stage$fitted.values
+```
+
+Since $\hat{s}_{i}$ is not correlated with the error term anymore, the regression $lnw_{i}$ on $\hat{s}_{i}$ gives you the causal effect of years of schooling on weekly wages:
+
+```{r}
+second_stage<-feols(lnw~s_hat, data=ak91, se="hetero")
+summary(second_stage)
+```
+
+Which is the same 10.2% we got using the Wald Estimator. The advantage of regression is the ability to include more than one instrument and also covariates (such as year of birth and state of birth). 
+
+### The correct way 
+
+The procedure above gives you the correct coefficient, but the standard errors are not quite right. **We let `r fa(name = "r-project", fill = "steelblue")` estimate an IV regression using 2SLS for us**. 
+
+The simple case is one instrument without any covariates:
+
+```{r}
+ivreg<-feols(lnw~1|s~instrument, data=ak91, se="hetero")
+summary(ivreg)
+```
+
+After the vertical bar `|`, identify the endogenous variable (in this case, $s_{i}$) and the instrument $Z_{i}$ you want to use. 
+
+If you want to add controls:
+```{r}
+ivreg2<-feols(lnw~1|yob+sob|s~instrument, data=ak91, se="hetero")
+summary(ivreg2)
+```
+
+You can also combine multiple instruments. For instance, let's bundle up the instrument `first quarter of year` with second and third:
+
+```{r}
+ak91$instrument2<-ifelse(ak91$qob==2,1,0)
+ak91$instrument3<-ifelse(ak91$qob==3,1,0)
+```
+
+Now, we have three instruments: the first three quarters of the year. As you can see, we got a more precise estimate (the standard error went down), and the returns to schooling increased a bit.  
+
+```{r}
+ivreg3<-feols(lnw~1|yob+sob|s~instrument+instrument2+instrument3, data=ak91, se="hetero")
+summary(ivreg3)
+```

@@ -1,0 +1,123 @@
+---
+title: "NonLinear Regression"
+author: "Marcelino Guerra"
+date: "Last update: 09/20/2021"
+abstract: 
+output: 
+  rmdformats::readthedown
+extra_dependencies: ["cancel", "amsmath", "amssymb", "float","tcolorbox","awesomebox"]
+---
+
+<style type="text/css">
+  body{
+  font-size: 14pt;
+}
+</style>
+
+```{r setup, include=FALSE}
+  knitr::opts_chunk$set(include = TRUE)  # TRUE for solution; FALSE for questions set
+  knitr::opts_chunk$set(echo = TRUE)
+  knitr::opts_chunk$set(message = FALSE)
+  knitr::opts_chunk$set(warning = FALSE)
+  knitr::opts_chunk$set(fig.height = 6, fig.width = 11, out.width = '100%', fig.align = "center")
+  options(width = 90)
+library(fontawesome)
+```
+
+
+
+
+## Preliminaries
+
+[We saw how to describe relationships fitting a line through the data](https://guerramarcelino.github.io/Econ474/Lectures/Lec2/lec2?panelset6=ols-estimation2&panelset7=fwl2&panelset8=interpretation2&panelset9=se%253A-simple-regression2&panelset10=education-and-experience2&panelset11=robust-standard-errors2#5), but that does not work always. Here, we will focus on an approach to performing regression that does not rely on a linear relationship between covariates and outcome. Specifically, we want to deal with binary dependent variables (i.e., when $Y$ takes on two values: 0 and 1). These lecture notes are based on [Huntington-Klein (2021)](https://theeffectbook.net/ch-StatisticalAdjustment.html#nonlinear-regression). 
+
+## Generalized Linear Models (GLM)
+
+To extend regression when we need to allow nonlinearity, one can leverage the generalized linear models. Instead of writing the regression model as $Y=\beta_{0}+\beta_{1}X$, our regression equation can be written as
+
+$$Y=F(\beta_{0}+\beta_{1}X)$$
+
+where $F()$ is a *link function*. In this case, if $F(x)=x$, $Y=\beta_{0}+\beta_{1}X$, i.e., the linear regression is a specific case of the GLM.
+
+If our $Y$ is a binary variable, the regression model predicts the probability that $Y$ is equal to one. So when we use a link function $F()$ that works with a binary $Y$, we are looking for
+
+1. $F()$ that takes any value from $-\infty$ to $\infty$ 
+2. $F()$ that produces values between 0 and 1
+3. Whenever the input ($\beta_{0}+\beta_{1}X$) increases, the output should also increase
+
+Many functions satisfy these criteria, but two are frequently used: the `logit` and the `probit` link functions. 
+
+The `probit` function looks like
+
+$$Pr(Y=1|X)=\Phi(\beta_{0}+\beta_{1}X)$$
+
+where $\Phi$ is the cumulative distribution function (CDF) of the standard normal distribution. 
+
+The `logit` function is
+
+$$F(\beta_{0}+\beta_{1}X)=\frac{e^{\beta_{0}+\beta_{1}X}}{1+e^{\beta_{0}+\beta_{1}X}}$$
+and we can write the logistic model as $log(\frac{p}{1-p})=\beta_{0}+\beta_{1}X$. These two link functions produce very similar predictions. Note that the interpretation of the GLM is different from the OLS model. The most common way is to present the results of probit/logit models in terms of **marginal effects**, and the interpretation will be given using the `titanic` dataset.  
+
+
+For the exercise, we are going to use the [titanic.RDS](https://github.com/guerramarcelino/PolicyEval/raw/main/Datasets/titanic.RDS) file, and you can check the variables' description [here](https://guerramarcelino.github.io/Econ474/Rlabs/lab4#subclassification-example). Read the file and create a dummy that takes one if the passenger was located in the first class and 0 otherwise. 
+
+```{r}
+library(tidyverse)
+titanic<-readRDS("titanic.RDS")
+titanic$first_class<-ifelse(titanic$class==1,1,0)
+```
+
+To run the logit regression, use the `glm()` function with the input `family = binomial(link = 'logit')`. The dependent variable is `survived`, which takes on one if the passenger survived and 0 otherwise. The covariates are `age`, `gender` and `first_class`.
+
+```{r}
+# Use the glm() function with
+# the family = binomial(link = 'logit') option
+reg <- glm( survived ~ first_class+ age+ sex, data = titanic,
+          family = binomial(link = 'logit'))
+
+# See the results
+summary(reg)
+```
+
+Although the regression output looks like the one from the `lm()`, we need to use the function `margins()` to interpret the coefficients in terms of average marginal probabilities. Run `install.packages("margins")` first if you do not have the package `margins` installed.
+
+```{r}
+#install.packages("margins") 
+library(margins)
+# Get the average marginal effect of year
+reg %>%
+  margins(variables = c('first_class','age','sex')) %>%
+  summary()
+```
+
+Since all the explanatory variables are dummies, it is easy to understand the marginal effects in that regression. For instance, if a passenger is located in the first class, that increases the survival probability by 20.13%. You can apply the same reasoning to interpret the average marginal effects (AME) of the dummies that represent adults and men. 
+
+
+## A Taste of Machine Learning
+
+Logistic regression is frequently used for classification tasks in machine learning, and it is an excellent algorithm for binary classification. The first step is to split the dataset into training and testing samples randomly. You will fit the model using 75% of the data and test your predictions' accuracy using the other 25%.  
+
+```{r}
+library(caret) 
+#creating indices
+set.seed(123)
+trainIndex<- createDataPartition(titanic$survived,p=0.75,list=FALSE)
+ 
+titanic_train<- titanic[trainIndex,] #training data (75% of data)
+titanic_test<- titanic[-trainIndex,] #testing data (25% of data)
+```
+
+Run the model with the `titanic_train` dataset. 
+
+```{r}
+model <- glm(survived ~ first_class+age+sex, family=binomial(link='logit'), data=titanic_train)
+summary(model)
+```
+Then, get the predicted probability for passenger's survival according to the explanatory variables `age`, `sex`, and `first_class`. Let's set the threshold at 0.5 - i.e., if the predicted probability is higher than 50%, we consider that the passenger survived. After that, display the confusion matrix: a 2x2 matrix that shows how the model classified each passenger in the testing sample *vs.* what happened with those passengers in reality.   
+
+```{r}
+probs<-predict(model, titanic_test, type="response")
+preds<-ifelse(probs>0.5,1,0)
+confusionMatrix(factor(preds), factor(titanic_test$survived))
+```
+**Overall, the model is correct around 80% of the time.** 

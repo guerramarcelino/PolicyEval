@@ -1,0 +1,95 @@
+---
+title: | 
+  ![](ILlogo.jpg){width=.2in}
+  
+  | ECON 474: Econometrics of Policy Evaluation
+  
+  | Homework 1
+author: "Marcelino Guerra (mguerra3)"
+date: '09/07/2021'
+output:
+  pdf_document:
+    extra_dependencies: ["cancel", "amsmath", "amssymb", "float"]
+    toc: yes
+    toc_depth: 3
+geometry: margin=1.2in
+urlcolor: blue
+fontfamily: mathpazo
+fontsize: 11pt
+header-includes:
+   - \linespread{1.05}
+---
+
+```{r setup, include=FALSE}
+  knitr::opts_chunk$set(include = TRUE)  # TRUE for solution; FALSE for questions set
+  knitr::opts_chunk$set(echo = TRUE)
+  knitr::opts_chunk$set(message = FALSE)
+  knitr::opts_chunk$set(warning = FALSE)
+  knitr::opts_chunk$set(fig.height = 5, fig.width = 7, out.width = '60%', fig.align = "center")
+  knitr::opts_chunk$set(fig.pos = "H", out.extra = "")
+  options(width = 100)
+```
+
+```{css, echo=FALSE}
+.solution {
+background-color: #CCDDFF;
+}
+```
+
+# A Causal Question [30 points] 
+
+Consider the following causal question: "Do Police reduce Crime?"
+
+a. Define the outcome and treatment variables
+
+b. What are the **potential outcomes** in this case?
+
+c. What plausible causal channel runs directly from the treatment to the
+outcome?
+
+d. Can you think about possible sources of **selection bias** in the naive comparison of outcomes by treatment status? Which way would you expect the bias to go and why?
+
+**Say the command of the Police in [Fortaleza-CE](https://www.google.com/search?q=Fortaleza-CE&sxsrf=AOaemvJQC6DV7CGA7FWf3UT08r9BPfPaSQ:1630993183639&source=lnms&tbm=isch&sa=X&ved=2ahUKEwjZx92Kk-zyAhVWrZ4KHUA9CIsQ_AUoA3oECAEQBQ&biw=1264&bih=920) decided to study the causal effects of intense monitoring on crime levels randomizing patrolling across boroughs within the city.** 
+
+e. How does randomization solve the selection bias problem?
+
+f. What can you say about the internal and external validity of this study?
+
+
+# Randomized Trials [70 points] 
+
+## Racial Discrimination in the Labor Market [35 points]
+
+We will use a dataset [here](https://github.com/guerramarcelino/PolicyEval/raw/main/Datasets/resume.RDS) from a [randomized experiment conducted by Marianne Bertrand and Sendhil Mullainathan](https://www.nber.org/papers/w9873) for this question. The researchers sent 4,870 fictitious resumes out to employers in response to job adverts in Boston and Chicago in 2001. They varied only the names of job applicants while leaving other relevant candidates' attributes unchanged (i.e., candidates had similar qualifications). Some applicants had distinctly white-sounding names such as Greg Baker and Emily Walsh, whereas other resumes contained stereotypically black-sounding names such as Lakisha Washington or Jamal Jones. Hence, any difference in callback rates can solely be attributed to name manipulation. 
+
+
+a. Illustrate this problem using the Potential Outcomes Framework 
+
+**Hint:** What is the unit of observation? What is the treatment $D_{i}$ and the observed outcome $Y_{i}$? What are the potential outcomes? 
+
+b. Create a dummy variable named `female` that takes one if `sex=="f"`, and zero otherwise. 
+
+c. The dataset contains information about candidates' education (`education`), years of experience (`yearsexp`), military experience (`military`), computer and special skills (`computerskills` and `specialskills`), a dummy for gender (`female`), among others. Summarize that information by getting average values by `race` groups. 
+
+d. Do `education`, `yearsexp`, `military`, `computerskills`, `specialskills` and `female` look balanced between race groups? Use `t.test()` to formally compare resume characteristics and interpret its output.  Why do we care about whether those variables are balanced?
+
+e. The output of interest in the dataset is `call` - a dummy that takes one if the candidate was called back. Use `t.test()` to compare callbacks between White names and Black names. **Is there a racial gap in the callback?**  
+
+
+
+## The Tenesse STAR experiment [35 points]
+
+"Education production" is an area much explored by economists. The terminology reflects that we think of features of the school environment as inputs that cost money, while student learning is the output that schools produce. A major question in the field is which inputs have the highest benefit/cost ratio, and one very costly input is class size. An important experiment conducted in Tennessee was designed to precisely answer the question "Does class size impacts student performance?".  
+
+[Krueger (1999)](https://www.jstor.org/stable/2587015) analyzed the Project STAR, a longitudinal study that randomly assigned kindergarten students and their teachers to one of three groups beginning in the 1985–1986 school year. The three groups were small classes (13–17 students per teacher), regular-size classes (22–25 students), and regular/aide
+classes (22–25 students) which also included a full-time teacher's aide. After their initial assignment, the design called for students to remain in the same class type for four years. Some 6000–7000 students were involved in the project each year. You can find part of the sample related to students who entered STAR in kindergarten   [here](https://github.com/guerramarcelino/PolicyEval/raw/main/Datasets/STARkinder.RDS) to answer the following questions. 
+
+a. Create the dummy variables `Free_lunch` (takes 1 if `lunch` is "free"), `White_asian` (equal 1 if ethnicity is either "cauc" or "asian") and `Female` - takes 1 if gender is "female". Also, define the variable `age` as 1986-`birth`, i.e., compute the age of the children in 1986.  
+
+b. The first question to ask about a randomized experiment is whether the randomization successfully balanced the subject's characteristics across different groups. Although the STAR data failed to include any pretreatment test scores, we can look at some characteristics of students such as race, gender, age, and free lunch status, which is a good measure of family income since only poor children qualify for free school lunch. Compare the values of `Free_lunch`, `White_asian`, `Female`, and `age` across the three groups `small`, `regular`, `regular+aide`. Are those variables balanced?
+
+
+c. In the STAR experiment, the treatment `classtype` is randomly assigned, and we are not worried about selection bias. One way to get the causal effect of interest is to run a regression of the outcome `score` (in percentage points) on the treatment `classtype`. Run a regression of `score` on `classtype` and **explain the results**.
+
+d. Now, run a regression of `score` on `classtype`, `Free_lunch`, `White_asian`, `female`, and `experience` (meaning teacher's experience). Do the estimates related to `small` and `regular+aide` change? What is the explanation for that behavior? Finally, what is the effect of class size on student's scores?
+

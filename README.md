@@ -1,2 +1,42 @@
-# PolicyEval
-UIUC ECON 474 Fall 2021
+# ECON 474 -Econometrics of Policy Evaluation
+
+[ECON 474 Fall 2021](https://guerramarcelino.github.io/econ474/) repository.
+
+## Lecture Notes
+
+[**The Experimental Ideal**](https://guerramarcelino.github.io/Econ474/Lectures/Lec1/lec1#1)
+
+[**Regression Analysis**](https://guerramarcelino.github.io/Econ474/Lectures/Lec2/lec2#1)
+
+[**Matching**](https://guerramarcelino.github.io/Econ474/Lectures/Lec3/lec3#1)
+
+[**Instrumental Variables**](https://guerramarcelino.github.io/Econ474/Lectures/Lec4/lec4#1)
+
+[**Fixed Effects**](https://guerramarcelino.github.io/Econ474/Lectures/Lec5/lec5#1)
+
+[**Difference-in-Differences**](https://guerramarcelino.github.io/Econ474/Lectures/Lec6/lec6#1)
+
+## R Labs
+
+[**Randomization**](https://guerramarcelino.github.io/Econ474/Rlabs/lab1)
+
+[**Inference Review**](https://guerramarcelino.github.io/Econ474/Rlabs/lab2)
+
+[**Matching**](https://guerramarcelino.github.io/Econ474/Rlabs/lab4)
+
+[**Nonlinear Regression**](https://guerramarcelino.github.io/Econ474/Rlabs/lab5)
+
+[**Instrumental Variables**](https://guerramarcelino.github.io/Econ474/Rlabs/lab6)
+
+[**Fixed Effects**](https://guerramarcelino.github.io/Econ474/Rlabs/lab7)
+
+## Homework
+
+[**HW #1**](https://guerramarcelino.github.io/Econ474/HW/HW1)
+
+[**HW #2**](https://guerramarcelino.github.io/Econ474/HW/HW2)
+
+
+## Final Project
+
+TBA
