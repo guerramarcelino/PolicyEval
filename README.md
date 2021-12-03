@@ -1,4 +1,4 @@
-# ECON 474 -Econometrics of Policy Evaluation
+# ECON 474 - Econometrics of Policy Evaluation
 
 [ECON 474 Fall 2021](https://guerramarcelino.github.io/econ474/) repository.
 
