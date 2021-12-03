@@ -1,34 +1,33 @@
 ---
-title: "ECON 474: Econometrics of Policy Evaluation"
-subtitle: "Homework 3"
-#author: "Marcelino Guerra (mguerra3)"
-date: 'Due date: 11/11/2021'
-#abstract: Requirements
+title: | 
+  ![](ILlogo.jpg){width=.2in}
+  
+  | ECON 474: Econometrics of Policy Evaluation
+  
+  | Homework 3
+author: "Marcelino Guerra (mguerra3)"
+date: '10/27/2021'
 output:
- bookdown::html_document2:  
-  toc: true # table of content true
-  toc_depth: 2  # upto three depths of headings (specified by #, ## and ###)
-  #number_sections: true  ## if you want number sections at each table header
-  theme: united  # many options for theme, this one is my favorite.
-  highlight: tango  # specifies the syntax highlighting style
-  fontsize: 16pt
+  pdf_document:
+    extra_dependencies: ["cancel", "amsmath", "amssymb", "float"]
+    toc: yes
+    toc_depth: 3
+geometry: margin=1.2in
+urlcolor: blue
+fontfamily: mathpazo
+fontsize: 11pt
+header-includes:
+   - \linespread{1.05}
 ---
-
-<style type="text/css">
-  body{
-  font-size: 14pt;
-}
-</style>
-
 
 ```{r setup, include=FALSE}
   knitr::opts_chunk$set(include = TRUE)  # TRUE for solution; FALSE for questions set
   knitr::opts_chunk$set(echo = TRUE)
   knitr::opts_chunk$set(message = FALSE)
   knitr::opts_chunk$set(warning = FALSE)
-  knitr::opts_chunk$set(fig.height = 5, fig.width = 7, out.width = '100%', fig.align = "center")
-  options(width = 90)
-
+  knitr::opts_chunk$set(fig.height = 5, fig.width = 7, out.width = '60%', fig.align = "center")
+  knitr::opts_chunk$set(fig.pos = "H", out.extra = "")
+  options(width = 100)
 ```
 
 ```{css, echo=FALSE}
@@ -37,28 +36,9 @@ background-color: #CCDDFF;
 }
 ```
 
-
 # Minimum Wage and Employment [50 points]
 
 In this question, you will work with data from [Card and Krueger (1994)](https://davidcard.berkeley.edu/papers/njmin-aer.pdf). David Card and Alan Krueger collected information about fast-food restaurants in **New Jersey (NA)** and **eastern Pennsylvania (PA)** during two rounds of interviews. The first interview wave was in March 1992, just before New Jersey raised its minimum wage from 4.25 to 5.05 dollars - the raise occurred in April 1992. The second round of interviews was in November and December of 1992, 7 months after the new minimum wage policy in New Jersey. During that period, the minimum wage in Pennsylvania remained at the federal level of $4.25. The authors evaluated the impact of the new minimum wage law by analyzing this data. 
-
-```{r, echo=F, message=F,warning=F, comment=F, out.width = '100%', align = "center"}
-library(tigris)
-library(sf)
-library(tidyverse)
-options(tigris_class = "sf")
-options(tigris_use_cache = TRUE)
-states<- states()
-states<-states%>%filter(STUSPS=="PA"|STUSPS=="NJ")
-library(tmap)
-
-tmap_mode("view")
-tm_shape(states)+ 
-  tm_polygons("NAME", palette="viridis", alpha=.5,legend.show = F,id="NAME", popup.vars=c("State " = "NAME")) +
-  tm_text("NAME", size = 1.5)+
-  tm_borders(lwd = 5, col = "black")+
-  tm_basemap(server="OpenStreetMap",alpha=0.5)
-```
 
 Some columns have the same name but end with "2". That means those values correspond to the second round of interviews (after the minimum wage raise). 
 
@@ -80,7 +60,7 @@ a. How many Burger King, KFC, Roy Rogers, Wendy's, and company-owned stores were
 
 b. Calculate four averages: the average **starting wages** (`wage_st`) in NJ and PA before and after the new minimum wage law in NJ. What is the difference-in-differences estimate of the impact of minimum wage on fast food starting wage in NJ?
 
-c. Repeat the same exercise as in (b) for **full-time equivalent employment** (`fte`). What is the impact of the new minimum wage law on employment in NJ fast-food restaurants?
+c. Repeat the same exercise as in (b) for ** full-time equivalent employment** (`fte`). What is the impact of the new minimum wage law on employment in NJ fast-food restaurants?
 
 d. Download the panel data version of this dataset [here](https://github.com/guerramarcelino/PolicyEval/raw/main/Datasets/ck94_panel.RDS). Then, run the following regression DiD model 
 
@@ -123,24 +103,23 @@ Download the data [here](https://github.com/guerramarcelino/PolicyEval/raw/main/
 
 a. Run a `t.test()` to compare the average car theft on the period April-July (`months==4, 5, 6, and 7`) in blocks with a Jewish institution (`institu1==1`) and in blocks farther away (`institu1==0`). Is there any difference in outcomes during the pre-treatment period? 
 
-b. Run a `t.test()` to compare the average car theft on the period August-December (`months==8, 9, 10, 11 and 12`) in blocks with a Jewish institution (`institu1==1`) and in blocks farther away (`institu1==0`). Is there any difference in outcomes during the treatment period? 
+c. Run a `t.test()` to compare the average car theft on the period August-December (`months==8, 9, 10, 11 and 12`) in blocks with a Jewish institution (`institu1==1`) and in blocks farther away (`institu1==0`). Is there any difference in outcomes during the treatment period? 
 
-c. What is the difference-in-differences estimate of the impact of more police on car theft? 
+d. What is the difference-in-differences estimate of the impact of more police on car theft? 
 
-d. Plot the evolution of average car theft in the treated (`institu1==1`) and the control (`institu1==0`) city blocks from April to December. What can you say about the common trends assumption in this setting?
+e. Plot the evolution of average car theft in the treated (`institu1==1`) and the control (`institu1==0`) city blocks from April to December. What can you say about the common trends assumption in this setting?
 
 *Hint:* average out the outcomes using `group_by` and `summarize()`. You want to `group_by()` treatment status and also month (`mes`).
 
-e. Estimate the following model (clustering standard errors at the block level):
+f. Estimate the following model (clustering standard errors at the block level):
 
 $$\text{Car Theft}_{it}= \beta \text{Same Block Police}_{it}+ Month_{t}+Block_{i}+ \varepsilon_{it}$$
 where `Same Block Police` is the interaction between `institu1` (treated blocks) and the treatment period (from August to December).
 
-f. To interpret the results, get the average number of car thefts from August to December in the control group - you already have that number from (c). Then, divide your DiD estimate by that average and multiply by 100. What is the percentage reduction in car theft due to the increase in policing?
+g. To interpret the results, get the average number of car thefts from August to December in the control group - you already have that number from (c). Then, divide your DiD estimate by that average and multiply by 100. What is the percentage reduction in car theft due to the increase in policing?
 
-g. Considering a roughly approximated increase in police presence of 223%, what is the crime-police elasticity in this setting? 
+h. Considering a roughly approximated increase in police presence of 223%, what is the crime-police elasticity in this setting? 
 
 *Hint:* divide the reduction in car theft by the increase in police presence
-
 
 

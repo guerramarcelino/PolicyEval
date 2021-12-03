@@ -1,34 +1,33 @@
 ---
-title: "ECON 474: Econometrics of Policy Evaluation"
-subtitle: "Homework 4"
-#author: "Marcelino Guerra (mguerra3)"
-date: 'Due date: 12/13/2021'
-#abstract: Requirements
+title: | 
+  ![](ILlogo.jpg){width=.2in}
+  
+  | ECON 474: Econometrics of Policy Evaluation
+  
+  | Homework 4
+author: "Marcelino Guerra (mguerra3)"
+date: '11/30/2021'
 output:
- bookdown::html_document2:  
-  toc: no # table of content true
-  #toc_depth: 1  # upto three depths of headings (specified by #, ## and ###)
-  number_sections: false  ## if you want number sections at each table header
-  theme: united  # many options for theme, this one is my favorite.
-  highlight: tango  # specifies the syntax highlighting style
-  fontsize: 16pt
+  pdf_document:
+    extra_dependencies: ["cancel", "amsmath", "amssymb", "float"]
+    toc: no
+    #toc_depth: 3
+geometry: margin=1.2in
+urlcolor: blue
+fontfamily: mathpazo
+fontsize: 11pt
+header-includes:
+   - \linespread{1.05}
 ---
-
-<style type="text/css">
-  body{
-  font-size: 14pt;
-}
-</style>
-
 
 ```{r setup, include=FALSE}
   knitr::opts_chunk$set(include = TRUE)  # TRUE for solution; FALSE for questions set
   knitr::opts_chunk$set(echo = TRUE)
   knitr::opts_chunk$set(message = FALSE)
   knitr::opts_chunk$set(warning = FALSE)
-  knitr::opts_chunk$set(fig.height = 5, fig.width = 7, out.width = '100%', fig.align = "center")
-  options(width = 90)
-
+  knitr::opts_chunk$set(fig.height = 5, fig.width = 7, out.width = '60%', fig.align = "center")
+  knitr::opts_chunk$set(fig.pos = "H", out.extra = "")
+  options(width = 100)
 ```
 
 ```{css, echo=FALSE}
@@ -36,7 +35,6 @@ output:
 background-color: #CCDDFF;
 }
 ```
-
 
 # The Economic Costs of Conflict [100 points]
 
@@ -96,4 +94,5 @@ f. Now, it is time to conduct a placebo study running the SCM with a Spanish reg
 g. Using the package `SCtools`, conduct placebo studies reassigning the treatment to all comparison units. Plot the Post period RMSPE/Pre period RMSPE ratio and interpret the results.
 
 h. What is the probability of obtaining a gap as large as the one obtained for the Basque region?
+
 
