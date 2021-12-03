@@ -42,19 +42,19 @@
 
 [**HW #1**](https://guerramarcelino.github.io/Econ474/HW/HW1)
 
-Learning goal: understand the Rubin Causal Model, random assignment and regression analysis of experiments (Bertrand & Mullainathan, 2004/Krueger 1999)
+**Learning goals:** understand the Rubin Causal Model, random assignment and regression analysis of experiments (Bertrand & Mullainathan, 2004/Krueger 1999)
 
 [**HW #2**](https://guerramarcelino.github.io/Econ474/HW/HW2)
 
-Learning goal: get used to regression analysis and matching (Krueger 1999/Cornwell & Trumbuil, 1993)
+**Learning goals:** get used to regression analysis and matching (Krueger 1999/Cornwell & Trumbuil, 1993)
 
 [**HW #3**](https://guerramarcelino.github.io/Econ474/HW/HW3)
 
-Learning goal: understand the DiD identification strategy (Card & Krueger, 1994/Di tella & Schargrodsky, 2004)
+**Learning goals:** understand the DiD identification strategy (Card & Krueger, 1994/Di tella & Schargrodsky, 2004)
 
 [**HW #4**](https://guerramarcelino.github.io/Econ474/HW/HW4)
 
-Learning goal: apply the SCM to study the causal effect of terrorism on the Basque economy (Abadie and Gardeazabal, 2003)
+**Learning goals:** apply the SCM to study the causal effect of terrorism on the Basque economy (Abadie and Gardeazabal, 2003)
 
 ## Final Project
 
