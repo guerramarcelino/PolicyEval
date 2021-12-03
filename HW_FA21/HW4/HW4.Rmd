@@ -1,0 +1,99 @@
+---
+title: "ECON 474: Econometrics of Policy Evaluation"
+subtitle: "Homework 4"
+#author: "Marcelino Guerra (mguerra3)"
+date: 'Due date: 12/13/2021'
+#abstract: Requirements
+output:
+ bookdown::html_document2:  
+  toc: no # table of content true
+  #toc_depth: 1  # upto three depths of headings (specified by #, ## and ###)
+  number_sections: false  ## if you want number sections at each table header
+  theme: united  # many options for theme, this one is my favorite.
+  highlight: tango  # specifies the syntax highlighting style
+  fontsize: 16pt
+---
+
+<style type="text/css">
+  body{
+  font-size: 14pt;
+}
+</style>
+
+
+```{r setup, include=FALSE}
+  knitr::opts_chunk$set(include = TRUE)  # TRUE for solution; FALSE for questions set
+  knitr::opts_chunk$set(echo = TRUE)
+  knitr::opts_chunk$set(message = FALSE)
+  knitr::opts_chunk$set(warning = FALSE)
+  knitr::opts_chunk$set(fig.height = 5, fig.width = 7, out.width = '100%', fig.align = "center")
+  options(width = 90)
+
+```
+
+```{css, echo=FALSE}
+.solution {
+background-color: #CCDDFF;
+}
+```
+
+
+# The Economic Costs of Conflict [100 points]
+
+[Abadie and Gardeazabal (2003)](https://economics.mit.edu/files/11870) investigate the economic impact of conflict - for instance, political instability is believed to harm the macroeconomic environment. In particular, the authors want to estimate the causal effect of terrorism in the Basque Country on the Basque economy. In the late 1960s, ETA (a Basque nationalist and separatist organization) claimed its first victim. By the mid-1970s, the group started a large-scale terrorist activity with a high number of killings and kidnappings and, during the 1980s, ETA killed 39 people per year. So, what would have happened with the Basque Country economy without all that terrorist activity?
+
+To answer that, they gather other Spanish regions as potential control units using (**for the first time!**) the Synthetic Control Method (SCM). In this question, you will construct a Synthetic Basque, choosing  Spanish units that best approximates the relevant characteristics of the Basque economy during the pretreatment period. 
+
+The data contains information from 1955–1997 on 17 Spanish regions (excluding the small autonomous towns of Ceuta and Melilla on the coast of Africa), including per-capita GDP (the outcome variable), as well as population density, sectoral production, investment, and human capital (the predictor variables). **NA** denotes missing data. The table below describes the dataset.
+
+```{r, echo=F}
+library(kableExtra)
+
+Variable<-c("regionname","year","invest", "school.illit", "school.prim", "school.med", "school.high", "school.post.high", "Variables with sec. prefix", "gdpcap", "popdens")
+Definition<-c("Spanish Region","Year","1964–1969 averages for gross total investment/GDP", "1964–1969 averages for the share of the working-age population that was illiterate", "The share of people with up to primary school education", "The share of people with some high school" , "The share of people with high school", "The share of people with more than high school", "1961–1969 averages for six industrial-sector shares as a percentage of total production", "1960–1969 averages for real GDP per-capita measured in thousands of 1986 USD.", "1969 population density measured in persons per square kilometer")
+
+df<-data.frame(Variable, Definition)
+
+kbl(df, digits=2, caption = "Variables Description", booktabs = T) %>%
+kable_styling(latex_options = c("striped", "HOLD_position"))%>%
+  column_spec(2, width = "12cm")
+
+```
+
+Download the dataset [here](https://github.com/guerramarcelino/PolicyEval/raw/main/Datasets/basque.RDS) and answer the following using the package `Synth`.
+
+a. Prepare the data using `dataprep.out()`.
+
+*Hint:* Set the predictors equal "school.illit", "school.prim", "school.med", "school.high", "school.post.high", and "invest". The pre-treatment period is 1960:1969, the dependent variable is "gdpcap", the unit variable is "regionno", the unit.names.variable is "regionname", and the time variable is "year". The treated region is Basque Country. Hence, set treatment.identifier equal 17, and the others are part of controls.identifier.The time of the plot should be from 1955 to 1997. 
+
+Finally, you want to set the special predictors as: 
+  
+```{r}
+special.predictors = list(
+  list("gdpcap", 1960:1969 , "mean"),
+  list("sec.agriculture", seq(1961, 1969, 2), "mean"),
+  list("sec.energy", seq(1961, 1969, 2), "mean"),
+  list("sec.industry", seq(1961, 1969, 2), "mean"),
+  list("sec.construction", seq(1961, 1969, 2), "mean"),
+  list("sec.services.venta", seq(1961, 1969, 2), "mean"),
+  list("sec.services.nonventa", seq(1961, 1969, 2), "mean"),
+  list("popdens", 1969, "mean"))
+```
+
+b. Show the balance table and **comment on the results**. 
+
+*Hint:* first, run the function `synth()`. Then, use  `synth.tab()`.
+
+c. One of the advantages of the SCM is that the relative contribution of each control unit to the counterfactual of interest is explicit. **Show the weights of each Spanish region in the synthetic version of Basque Country**. 
+
+d. Using `path.plot`, show the trajectories of the treated and the synthetic control units and **comment on the results**. Also, plot the difference in GDP per capita between the Basque Country and its synthetic version. What happened with the Basque Country in the period post-1970?
+
+e. One way to evaluate the credibility of the results is to check whether there is any causal effect of terrorism when using a different time of treatment (placebo date/before ETA terror deaths). Set the pre-treatment period from 1960 to 1965 and the plot time from 1955 to 1970. Show the trajectories of the treated unit (Basque Country) and its synthetic control. Why is this a check on how well the methodology is doing in uncovering
+the effects of terrorism on the economy? What do you conclude?
+
+f. Now, it is time to conduct a placebo study running the SCM with a Spanish region that was not affected by high levels of terrorism. Take the Basque Country out of the sample and run the synthetic control method faking the treatment for Catalonia. Again, show the trajectories of the treated unit (Catalonia) and its synthetic version. Do you still think your results in (d) are robust? Why? 
+
+g. Using the package `SCtools`, conduct placebo studies reassigning the treatment to all comparison units. Plot the Post period RMSPE/Pre period RMSPE ratio and interpret the results.
+
+h. What is the probability of obtaining a gap as large as the one obtained for the Basque region?
+

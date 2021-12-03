@@ -16,6 +16,10 @@
 
 [**Difference-in-Differences**](https://guerramarcelino.github.io/Econ474/Lectures/Lec6/lec6#1)
 
+[**Synthetic Control Method**](https://guerramarcelino.github.io/Econ474/Lectures/Lec7/lec7#1)
+
+[**Regression Discontinuity**](https://guerramarcelino.github.io/Econ474/Lectures/Lec8/lec8#1)
+
 ## R Labs
 
 [**Randomization**](https://guerramarcelino.github.io/Econ474/Rlabs/lab1)
@@ -30,12 +34,27 @@
 
 [**Fixed Effects**](https://guerramarcelino.github.io/Econ474/Rlabs/lab7)
 
+[**Difference-in-Differences**](https://guerramarcelino.github.io/Econ474/Rlabs/lab8)
+
+[**Synthetic Control Method**](https://guerramarcelino.github.io/Econ474/Rlabs/lab9)
+
 ## Homework
 
 [**HW #1**](https://guerramarcelino.github.io/Econ474/HW/HW1)
 
+Learning goal: understand the Rubin Causal Model, random assignment and regression analysis of experiments (Bertrand & Mullainathan, 2004/Krueger 1999)
+
 [**HW #2**](https://guerramarcelino.github.io/Econ474/HW/HW2)
 
+Learning goal: get used to regression analysis and matching (Krueger 1999/Cornwell & Trumbuil, 1993)
+
+[**HW #3**](https://guerramarcelino.github.io/Econ474/HW/HW3)
+
+Learning goal: understand the DiD identification strategy (Card & Krueger, 1994/Di tella & Schargrodsky, 2004)
+
+[**HW #4**](https://guerramarcelino.github.io/Econ474/HW/HW4)
+
+Learning goal: apply the SCM to study the causal effect of terrorism on the Basque economy (Abadie and Gardeazabal, 2003)
 
 ## Final Project
 

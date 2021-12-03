@@ -1,0 +1,256 @@
+---
+title: "Difference-in-Differences"
+author: "Marcelino Guerra"
+date: "Last update: 10/28/2021"
+abstract: 
+output: 
+  rmdformats::readthedown
+extra_dependencies: ["cancel", "amsmath", "amssymb", "float","tcolorbox","awesomebox"]
+---
+
+<style type="text/css">
+  body{
+  font-size: 14pt;
+}
+</style>
+
+```{r setup, include=FALSE}
+  knitr::opts_chunk$set(include = TRUE)  # TRUE for solution; FALSE for questions set
+  knitr::opts_chunk$set(echo = TRUE)
+  knitr::opts_chunk$set(message = FALSE)
+  knitr::opts_chunk$set(warning = FALSE)
+  knitr::opts_chunk$set(fig.height = 6, fig.width = 11, out.width = '100%', fig.align = "center")
+  options(width = 90)
+library(fontawesome)
+```
+
+
+## Line plots
+
+The main identification assumption in the DinD framework is *common trends*. One way to see whether the assumption is reasonable in your setting is through line plots. The first step is to show how the outcomes in both treatment and control groups evolve - preferable with multiple pre-intervention periods. 
+
+Let's replicate Figure 5.2 from Angrist and Pischke (2014) and see how trends in bank failures in Mississippi evolved before, during, and after the Caldwell crisis. Download the data [here](https://github.com/guerramarcelino/PolicyEval/raw/main/Datasets/banks.RDS). In this exercise, we use the packages `ggplot2` and `ggthemes`.
+
+```{r}
+# If you don't have the packages, start with install.packages("ggplot2") and 
+# install.packages("ggthemes")
+library(ggplot2)
+library(ggthemes)
+
+banks<-readRDS("banks.RDS")
+
+plot1<-ggplot()+
+  geom_line(data=banks, aes(x=year, y=`6th district`),size=1.4, color="#336666")+
+  geom_line(data=banks, aes(x=year, y=`8th district`),size=1.4, color="#8abbd0")+ 
+  labs(x = "Year", y="Number of banks in business")+
+  theme_economist(base_size = 14) +
+  scale_colour_economist()+
+   theme(axis.text=element_text(size=12),
+        axis.title=element_text(size=12,face="bold"))
+
+plot1
+```
+
+Instead of using `geom_line()` for each district, you can reshape the dataset. That will easily allow you to have legends for each line:
+
+```{r}
+library(reshape2)
+panel_banks<-melt(banks, id.var='year')
+head(panel_banks,5)
+```
+
+Then, you apply almost the same code and get the plot with legends:
+
+```{r}
+plot2<-ggplot()+
+  geom_line(data=panel_banks, aes(x=year, y=value, col=variable),size=1.4)+
+  scale_color_manual("", values=c("#8abbd0", "#336666"))+
+  labs(x = "Year", y="Number of banks in business")+
+  theme_economist(base_size = 14) +
+  theme(axis.text=element_text(size=12),
+      axis.title=element_text(size=12,face="bold"))
+plot2
+```
+
+`ggplot2` allows you to customize your graphs in many ways. For example, if you want different line types:
+
+```{r}
+plot3<-ggplot()+
+  geom_line(data=panel_banks, aes(x=year, y=value, col=variable, linetype = variable),size=1.4)+
+  scale_color_manual("", values=c("#8abbd0", "#336666"))+
+  scale_linetype_manual("", values = c("solid", "dashed"))+
+  labs(x = "Year", y="Number of banks in business")+
+  theme_economist(base_size = 14) +
+  theme(axis.text=element_text(size=12),
+      axis.title=element_text(size=12,face="bold"))
+plot3
+```
+
+Check also `ggthemes` [here](https://yutannihilation.github.io/allYourFigureAreBelongToUs/ggthemes/). There you have plenty of options for the plot background. 
+
+## Difference-in-Differences Example: Cheng and Hoekstra (2013) 
+
+These notes are mostly based on [Cunningham (2021)](https://mixtape.scunning.com/difference-in-differences.html?panelset6=r-code7&panelset4=r-code5&panelset7=r-code8&panelset5=r-code6#replicating-cheng2013-sort-of). This exercise replicates some of the results of [Cheng and Hoekstra (2013)](http://jhr.uwpress.org/content/48/3/821.short). The dataset ([download here](https://github.com/guerramarcelino/PolicyEval/raw/main/Datasets/castle.RDS)) comprehends 50 U.S states during the period 2000-2010. The authors aimed to evaluate the effect of the staggered adoption of "stand your ground" laws on crime. Check lecture notes for discussion [here](https://guerramarcelino.github.io/Econ474/Lectures/Lec6/lec6?panelset6=did-regression3&panelset7=2x2-difference-in-differences2&panelset8=regression-results4&panelset9=did-assumptions2&panelset10=threats-to-validity2&panelset11=deterrence2#31).
+
+The variables are described below:
+
+```{r, echo=F}
+library(kableExtra)
+
+Variable<-c("state","year", "region", "treated","cdl",     
+"l_motor","l_larceny","l_robbery","l_assault","l_homicide",      
+"blackm_15_24", "whitem_15_24", "blackm_25_44","whitem_25_44","l_exp_subsidy",   
+"l_exp_pubwelfare", "l_police", "unemployrt",  "poverty", "l_income",        
+"l_prisoner", "l_lagprisoner","popwt")
+Definition<-c("U.S. State", "Year", "Census Region. 1 if northeast, 2 if midwest, 3 if south and 4 if west", "1 if state is treated at any point from 2000 and 2010", "Treatment variable. Takes values from 0 to 1, depending on which month of the year the new law was passed", "Motor theft rate (in log)", "Larceny rate (in log)", "Robbery rate (in log)","Aggravated Assault rate (in log)", "Murder rate (in log)", "% of black male aged 15-24", "% of white male aged 15-24", "% of black male aged 25-44", "% of white male aged 25-44", "Government spending (assistance and subsidies)
+per capita (in log)", "Government spending (public welfare) per
+capita (in log)", "Police per 100,000 residents (in log)", "Unemployment Rate (%)",
+"Poverty Rate (%)", "Median Household Income ($) (in log)", "Prisoners per 100,000 residents (in log)", "Lag prisoners per 100,000 residents (in log)", "State Population (used in the weighted regression)")
+df<-data.frame(Variable, Definition)
+kbl(df, digits=2, caption = "Variables Description", booktabs = T) %>%
+kable_styling(latex_options = c("striped", "HOLD_position"))%>%
+  column_spec(2, width = "12cm")
+
+```
+
+### Falsification tests
+
+```{r}
+castle<-readRDS("castle.RDS")
+library(fixest)
+library(tidyverse)
+## TWFE
+reg_motor1<-feols(l_motor~cdl|state+year, cluster=~state, data=castle)
+
+## TWFE with Region-by-Year Fixed Effects
+reg_motor2<-feols(l_motor~cdl|state+year+region^year, cluster=~state, data=castle)
+
+## TWFE with Region-by-Year Fixed Effects, additional controls and State-Specific Linear Time trends
+reg_motor3<-feols(l_motor~cdl+blackm_15_24+whitem_15_24+blackm_25_44+
+              whitem_25_44+l_exp_subsidy+l_exp_pubwelfare+l_police+
+              unemployrt+poverty+l_income+l_prisoner+l_lagprisoner+
+              state:year
+              |state+year+region^year, cluster=~state, data=castle)
+
+etable(reg_motor1,reg_motor2,reg_motor3,signifCode = c("***"=0.01, "**"=0.05, "*"=0.10),   keep=c("cdl","blackm_15_24","whitem_15_24","blackm_25_44",
+                     "whitem_25_44","l_exp_subsidy","l_exp_pubwelfare","l_police",
+                     "unemployrt","poverty","l_income","l_prisoner","l_lagprisoner"))
+```
+
+```{r}
+reg_lar1<-feols(l_larceny~cdl|state+year, cluster=~state, data=castle)
+reg_lar2<-feols(l_larceny~cdl|state+year+region^year, cluster=~state, data=castle)
+reg_lar3<-feols(l_larceny~cdl+blackm_15_24+whitem_15_24+blackm_25_44+
+              whitem_25_44+l_exp_subsidy+l_exp_pubwelfare+l_police+
+              unemployrt+poverty+l_income+l_prisoner+l_lagprisoner+
+              state:year
+            |state+year+region^year, cluster=~state, data=castle)
+
+etable(reg_lar1,reg_lar2,reg_lar3,signifCode = c("***"=0.01, "**"=0.05, "*"=0.10),   keep=c("cdl","blackm_15_24","whitem_15_24","blackm_25_44",
+                     "whitem_25_44","l_exp_subsidy","l_exp_pubwelfare","l_police",
+                     "unemployrt","poverty","l_income","l_prisoner","l_lagprisoner"))
+```
+
+### Deterrence
+
+```{r}
+reg_rob1<-feols(l_robbery~cdl|state+year, cluster=~state, data=castle)
+reg_rob2<-feols(l_robbery~cdl|state+year+region^year, cluster=~state, data=castle)
+reg_rob3<-feols(l_robbery~cdl+blackm_15_24+whitem_15_24+blackm_25_44+
+              whitem_25_44+l_exp_subsidy+l_exp_pubwelfare+l_police+
+              unemployrt+poverty+l_income+l_prisoner+l_lagprisoner+
+              state:year
+            |state+year+region^year, cluster=~state, data=castle)
+
+etable(reg_rob1,reg_rob2,reg_rob3,signifCode = c("***"=0.01, "**"=0.05, "*"=0.10),   keep=c("cdl","blackm_15_24","whitem_15_24","blackm_25_44",
+                     "whitem_25_44","l_exp_subsidy","l_exp_pubwelfare","l_police",
+                     "unemployrt","poverty","l_income","l_prisoner","l_lagprisoner"))
+```
+
+```{r}
+reg_aslt1<-feols(l_assault~cdl|state+year, cluster=~state, data=castle)
+reg_aslt2<-feols(l_assault~cdl|state+year+region^year, cluster=~state, data=castle)
+reg_aslt3<-feols(l_assault~cdl+blackm_15_24+whitem_15_24+blackm_25_44+
+                  whitem_25_44+l_exp_subsidy+l_exp_pubwelfare+l_police+
+                  unemployrt+poverty+l_income+l_prisoner+l_lagprisoner+
+                  state:year
+                |state+year+region^year, cluster=~state, data=castle)
+
+etable(reg_aslt1,reg_aslt2,reg_aslt3,signifCode = c("***"=0.01, "**"=0.05, "*"=0.10),   keep=c("cdl","blackm_15_24","whitem_15_24","blackm_25_44",
+                     "whitem_25_44","l_exp_subsidy","l_exp_pubwelfare","l_police",
+                     "unemployrt","poverty","l_income","l_prisoner","l_lagprisoner"))
+```
+
+### Homicide in Florida
+
+```{r}
+florida<-castle%>%filter(state=="Florida"|treated==0)
+florida<-florida%>%mutate(treat=ifelse(state=="Florida","Florida","Control Group"))
+plot<-florida%>%group_by(treat, year)%>%summarize(Homicide=mean(l_homicide))
+
+library(ggthemes)
+  ggplot()+
+  geom_line(data=plot, 
+            aes(x=year, y=Homicide, col=treat),
+            size=1.4)+
+  scale_color_fivethirtyeight("Treatment Status")+
+  theme_fivethirtyeight()+
+  labs(x = "Year", y="Homicide (in log)")+
+  geom_vline(xintercept = 2005, linetype="dashed")+
+  scale_x_continuous(breaks=c(2000, 2003, 2005, 2008, 2010))+
+  theme(axis.text=element_text(size=12),
+        axis.title=element_text(size=12,face="bold"))
+```
+
+
+```{r}
+reg_homic1_fl<-feols(l_homicide~cdl|state+year, cluster=~state, data=florida)
+reg_homic2_fl<-feols(l_homicide~cdl|state+year+region^year, cluster=~state, data=florida)
+reg_homic3_fl<-feols(l_homicide~cdl+blackm_15_24+whitem_15_24+blackm_25_44+
+                  whitem_25_44+l_exp_subsidy+l_exp_pubwelfare+l_police+
+                  unemployrt+poverty+l_income+l_prisoner+l_lagprisoner+
+                  state:year
+                |state+year+region^year, cluster=~state, data=florida)
+
+etable(reg_homic1_fl,reg_homic2_fl,reg_homic3_fl,signifCode = c("***"=0.01, "**"=0.05, "*"=0.10),   keep=c("cdl","blackm_15_24","whitem_15_24","blackm_25_44",
+                     "whitem_25_44","l_exp_subsidy","l_exp_pubwelfare","l_police",
+                     "unemployrt","poverty","l_income","l_prisoner","l_lagprisoner"))
+```
+
+```{r}
+florida_plot = feols(l_homicide~i(treated, year, 2004)|state+year, cluster=~state, data=florida)
+coefplot(florida_plot)
+```
+
+### Multistate Homicide Regression
+
+```{r}
+reg_homic1<-feols(l_homicide~cdl|state+year, cluster=~state, data=castle)
+reg_homic2<-feols(l_homicide~cdl|state+year+region^year, cluster=~state, data=castle)
+reg_homic3<-feols(l_homicide~cdl+blackm_15_24+whitem_15_24+blackm_25_44+
+                     whitem_25_44+l_exp_subsidy+l_exp_pubwelfare+l_police+
+                     unemployrt+poverty+l_income+l_prisoner+l_lagprisoner+
+                     state:year
+                   |state+year+region^year,cluster=~state, data=castle)
+  
+etable(reg_homic1,reg_homic2,reg_homic3,signifCode = c("***"=0.01, "**"=0.05, "*"=0.10),
+       keep=c("cdl","blackm_15_24","whitem_15_24","blackm_25_44",
+                     "whitem_25_44","l_exp_subsidy","l_exp_pubwelfare","l_police",
+                     "unemployrt","poverty","l_income","l_prisoner","l_lagprisoner"))
+```
+
+
+```{r}
+reg_homic1<-feols(l_homicide~cdl|state+year, cluster=~state,weights=castle$popwt, data=castle)
+reg_homic2<-feols(l_homicide~cdl|state+year+region^year, weights=castle$popwt, cluster=~state, data=castle)
+reg_homic3<-feols(l_homicide~cdl+blackm_15_24+whitem_15_24+blackm_25_44+
+                     whitem_25_44+l_exp_subsidy+l_exp_pubwelfare+l_police+
+                     unemployrt+poverty+l_income+l_prisoner+l_lagprisoner+
+                     state:year
+                   |state+year+region^year, weights=castle$popwt, cluster=~state, data=castle)
+  
+etable(reg_homic1,reg_homic2,reg_homic3,signifCode = c("***"=0.01, "**"=0.05, "*"=0.10),
+       keep=c("cdl","blackm_15_24","whitem_15_24","blackm_25_44",
+                     "whitem_25_44","l_exp_subsidy","l_exp_pubwelfare","l_police",
+                     "unemployrt","poverty","l_income","l_prisoner","l_lagprisoner"))
+```
