@@ -58,4 +58,4 @@
 
 ## Final Project
 
-TBA
+[**Final Project Guidelines (Fall 2021)**](https://guerramarcelino.github.io/econ474/projectFA21/)
