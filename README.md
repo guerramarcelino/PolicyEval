@@ -1,6 +1,6 @@
 # ECON 474 - Econometrics of Policy Evaluation
 
-[ECON 474 Fall 2021](https://guerramarcelino.github.io/econ474/) repository.
+[ECON 474 Spring 2022](https://guerramarcelino.github.io/econ474/) repository.
 
 ## Lecture Notes
 
@@ -22,40 +22,42 @@
 
 ## R Labs
 
-[**Randomization**](https://guerramarcelino.github.io/Econ474/Rlabs/lab1)
+[**Randomization**](https://guerramarcelino.github.io/474-Rlab/randomized-experiments.html)
 
-[**Inference Review**](https://guerramarcelino.github.io/Econ474/Rlabs/lab2)
+[**Inference Review**](https://guerramarcelino.github.io/474-Rlab/inference-review.html)
 
-[**Matching**](https://guerramarcelino.github.io/Econ474/Rlabs/lab4)
+[**Matching**](https://guerramarcelino.github.io/474-Rlab/subclassification-and-matching.html)
 
-[**Nonlinear Regression**](https://guerramarcelino.github.io/Econ474/Rlabs/lab5)
+[**Nonlinear Regression**](https://guerramarcelino.github.io/474-Rlab/nonlinear-regression.html)
 
-[**Instrumental Variables**](https://guerramarcelino.github.io/Econ474/Rlabs/lab6)
+[**Instrumental Variables**](https://guerramarcelino.github.io/474-Rlab/instrumental-variables.html)
 
-[**Fixed Effects**](https://guerramarcelino.github.io/Econ474/Rlabs/lab7)
+[**Fixed Effects**](https://guerramarcelino.github.io/474-Rlab/fixed-effects.html)
 
-[**Difference-in-Differences**](https://guerramarcelino.github.io/Econ474/Rlabs/lab8)
+[**Difference-in-Differences**](https://guerramarcelino.github.io/474-Rlab/difference-in-differences.html)
 
-[**Synthetic Control Method**](https://guerramarcelino.github.io/Econ474/Rlabs/lab9)
+[**Synthetic Control Method**](https://guerramarcelino.github.io/474-Rlab/synthetic-control.html)
 
 ## Homework
 
 [**HW #1**](https://guerramarcelino.github.io/Econ474/HW/HW1)
 
-**Learning goals:** understand the Rubin Causal Model, random assignment and regression analysis of experiments (Bertrand & Mullainathan, 2004/Krueger 1999)
+**Learning goals:** Understand the Rubin Causal Model, random assignment, regression analysis of experiments, and A/B testing for business (Bertrand and Mullainathan (2004) & Power Analysis)
 
 [**HW #2**](https://guerramarcelino.github.io/Econ474/HW/HW2)
 
-**Learning goals:** get used to regression analysis and matching (Krueger 1999/Cornwell & Trumbuil, 1993)
+**Learning goals:** Get used to regression analysis and matching (Krueger 1999/Cornwell & Trumbuil, 1993)
 
 [**HW #3**](https://guerramarcelino.github.io/Econ474/HW/HW3)
 
-**Learning goals:** understand the DiD identification strategy (Card & Krueger, 1994/Di tella & Schargrodsky, 2004)
+**Learning goals:** Understand the DiD identification strategy (Card & Krueger, 1994/Draca, Machin and Witt, 2004)
 
 [**HW #4**](https://guerramarcelino.github.io/Econ474/HW/HW4)
 
-**Learning goals:** apply the SCM to study the causal effect of terrorism on the Basque economy (Abadie and Gardeazabal, 2003)
+**Learning goals:** Apply the SCM to study the causal effect of terrorism on the Basque economy (Abadie and Gardeazabal, 2003)
 
 ## Final Project
 
 [**Final Project Guidelines (Fall 2021)**](https://guerramarcelino.github.io/econ474/projectFA21/)
+
+[**Final Project Guidelines (Spring 2022)**](https://guerramarcelino.github.io/econ474/projectSP22/)
